@@ -1,0 +1,851 @@
+<!doctype html>
+<html lang="ko">
+<head>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>한약재 단가비교 · 데모</title>
+<meta name="description" content="한의원 한약재 가격 비교·주문 도구 데모 (예시 데이터)">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* 장부처럼 쓰는 화면: 위에 탭, 가운데 넓은 비교표, 폼은 휴대폰에서 한 줄로 쌓임 */
+:root{
+  --hr:#C0352B; --hg:#1F7A3E; --hb:#2147A8;
+  --bg:#F3F5F1; --surface:#FFFFFF; --sunk:#E8ECE6; --line:#D3D9D0; --fg:#1C2420; --muted:#5F6B64;
+  --accent:#2C5E4F; --accent-ink:#FFFFFF; --seal:#B3352B; --seal-bg:#FBE9E6; --warn:#9A6A12; --warn-bg:#FBF1DC;
+  --f-display:"Gowun Batang","Nanum Myeongjo",serif;
+  --f-body:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root{
+  --hr:#F2867A; --hg:#6FCB8E; --hb:#8EAEF5;
+  --bg:#141917; --surface:#1C2320; --sunk:#232B28; --line:#34403B; --fg:#E4EAE6; --muted:#97A39D;
+  --accent:#7DBBA5; --accent-ink:#0E1513; --seal:#F07C6E; --seal-bg:#3A2220; --warn:#E3B75C; --warn-bg:#352C18; color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding-left:16px;padding-right:16px}
+header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.hrow{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:6px 16px;padding-top:12px}
+h1{font-family:var(--f-display);font-size:22px;margin:0}
+.sub{color:var(--muted);font-size:12.5px}
+nav{display:flex;gap:2px;overflow-x:auto;margin-top:8px}
+nav button{font:inherit;background:none;border:0;border-bottom:2px solid transparent;padding:8px 12px;color:var(--muted);cursor:pointer;white-space:nowrap;font-weight:600}
+nav button[aria-selected="true"]{color:var(--fg);border-color:var(--accent)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+main{padding-top:16px;padding-bottom:48px}
+section{display:grid;gap:14px}
+section[hidden]{display:none}
+.bar{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center}
+.grow{flex:1 1 180px;min-width:0}
+input,select{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 10px;min-width:0}
+input[type=number]{font-family:var(--f-num)}
+.btn{font:inherit;font-weight:600;border-radius:6px;padding:8px 14px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--fg);text-decoration:none;display:inline-block}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.sm{padding:4px 9px;font-size:12.5px;font-weight:500}
+.btn.ghost{border-color:transparent;background:none;color:var(--muted)}
+.btn.danger{color:var(--seal)}
+.btn[disabled]{opacity:.5;cursor:default}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{font:inherit;border:0;background:var(--surface);color:var(--muted);padding:6px 10px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px}
+.panel h2{font-family:var(--f-display);font-size:17px;margin:0 0 4px}
+.help{margin:0 0 12px;color:var(--muted);font-size:12.5px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:14px;align-items:start}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+thead th{background:var(--sunk);font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap}
+thead th a{color:inherit}
+th.herb,td.herb{position:sticky;left:0;background:var(--surface);z-index:1;min-width:92px;max-width:150px}
+thead th.herb{background:var(--sunk);z-index:2}
+td.herb b{font-size:15px;cursor:pointer}
+.al{display:block;color:var(--muted);font-size:11.5px}
+.note{display:block;color:var(--warn);font-size:11.5px;line-height:1.35;margin-top:2px}
+.fav{color:var(--warn);font-size:12px}
+.c-R{color:var(--hr)!important}.c-G{color:var(--hg)!important}.c-B{color:var(--hb)!important}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;align-items:center}
+.legend b{font-weight:700}
+.watchbar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:10px 14px}
+.watchbar .grow{flex:1 1 220px;min-width:0;font-size:12.5px;color:var(--muted)}
+tr.grade td{background:var(--bg);padding-top:6px;padding-bottom:6px}
+tr.grade td.herb{background:var(--bg)}
+.gname{font-size:12.5px;font-weight:600;color:var(--accent);padding-left:22px;display:block}
+.cpbtn{white-space:nowrap;font-size:12px}
+.cell .spec{color:var(--fg);opacity:.75}
+.gtools{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;justify-content:space-between;margin-bottom:6px}
+.gtools .meta{flex:1 1 260px}
+.xbtn{border:0;background:none;color:inherit;cursor:pointer;font:inherit;padding:0 2px}
+label.pi{cursor:pointer}
+input.wchk{margin:0 6px 0 0;vertical-align:-2px;accent-color:var(--accent)}
+.cell{display:grid;gap:1px;min-width:120px;cursor:pointer}
+.cell .p{font-family:var(--f-num);font-weight:500;font-size:14px;white-space:nowrap}
+.cell .u{font-size:11px;color:var(--muted);font-family:var(--f-body)}
+.cell .d{font-size:11.5px;color:var(--muted);line-height:1.35}
+.cell .diff{font-family:var(--f-num);font-size:11.5px;color:var(--muted)}
+.cell.best .p{color:var(--seal);font-weight:600}
+.cell.none{color:var(--muted);font-size:12px;opacity:.6;cursor:default}
+.stamp{display:inline-block;font-family:var(--f-display);font-size:11px;color:var(--seal);border:1.5px solid var(--seal);border-radius:3px;padding:0 4px;line-height:1.4;margin-left:6px;transform:rotate(-4deg);vertical-align:1px}
+.stale{color:var(--warn)!important}
+tr.detail td{background:var(--sunk);padding:8px 10px}
+.plist{display:grid;gap:4px}
+.plist .pi{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 12px;font-size:12.5px;padding:6px 8px;background:var(--surface);border-radius:6px}
+.plist .pi.win{outline:1.5px solid var(--seal)}
+.plist .pi a{color:var(--fg)}
+.num{font-family:var(--f-num);text-align:right;white-space:nowrap}
+.chip{display:inline-block;font-size:11.5px;padding:1px 8px;border-radius:99px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.chip.ok{background:var(--seal-bg);color:var(--seal)}
+.chip.warn{background:var(--warn-bg);color:var(--warn)}
+.summary{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12.5px;color:var(--muted)}
+.summary b{color:var(--fg);font-weight:600}
+.empty{color:var(--muted);font-size:13px;padding:24px;text-align:center}
+.vend{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.vend h3{margin:0;font-size:15px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 12px;background:var(--sunk)}
+.vend td,.vend th{padding:6px 12px}
+.vend .tot td{font-weight:600}
+.cmp{display:grid;gap:6px}
+#oTable td{vertical-align:middle}
+#oTable [data-rm]{white-space:nowrap}
+#oBulk{width:100%;box-sizing:border-box;font:inherit;border:1px solid var(--line);border-radius:6px;padding:8px 10px;background:var(--surface);color:var(--fg)}
+.rowsel{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+.rowsel select{font-size:11.5px;padding:2px 4px}
+.ocell{display:grid;gap:1px;text-align:left;font:inherit;color:inherit;background:none;border:2px solid transparent;border-radius:6px;padding:4px 6px;min-width:120px;cursor:pointer}
+.ocell:hover{background:var(--sunk)}
+.ocell .p{font-family:var(--f-num);font-weight:500;font-size:14px;white-space:nowrap}
+.ocell .u{font-size:11px;color:var(--muted);font-family:var(--f-body)}
+.ocell .d{font-size:11.5px;color:var(--muted)}
+.ocell .t{max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ocell.lo .p{color:var(--seal);font-weight:600}
+.ocell.chosen{border-color:var(--fg);background:var(--surface)}
+div.ocell{cursor:default}
+td.sugg,th.sugg{background:var(--warn-bg)!important;min-width:130px;font-size:12.5px}
+td.sugg.need{box-shadow:inset 3px 0 0 var(--warn)}
+.linkbtn{font:inherit;font-size:12.5px;background:none;border:0;color:var(--accent);cursor:pointer;padding:0;text-decoration:underline}
+.minnote{margin:0;font-size:12.5px;padding:8px 10px;border-radius:6px;background:var(--warn-bg);color:var(--warn)}
+.minnote b{color:var(--fg)}
+#oTable td.qty{white-space:nowrap}
+#oTable td.qty input{width:72px}
+.plines{display:grid;gap:2px;font-size:12px;margin-bottom:4px}
+.plines div{display:flex;justify-content:space-between;gap:10px;color:var(--muted)}
+.plines .num{white-space:normal}
+.plines div.lo{color:var(--seal);font-weight:600}
+.pickd{font-size:12px;margin-top:4px;padding-top:4px;border-top:1px dashed var(--line)}
+.cmp div{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:7px 10px;border-radius:6px;background:var(--sunk)}
+.cmp div.win{background:var(--seal-bg);color:var(--seal);font-weight:600}
+.list .row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.list .row:last-child{border-bottom:0}
+.meta{color:var(--muted);font-size:12px}
+.formgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+label.f{display:grid;gap:4px;font-size:12px;color:var(--muted);font-weight:600}
+label.f input,label.f select{width:100%}
+textarea.code{width:100%;font-family:var(--f-num);font-size:11.5px;min-height:96px;border:1px solid var(--line);border-radius:6px;padding:8px;background:var(--sunk);color:var(--fg);word-break:break-all}
+.bm{display:inline-block;font-weight:700;background:var(--accent);color:var(--accent-ink);padding:10px 16px;border-radius:8px;text-decoration:none;cursor:grab}
+ol.steps{margin:0;padding-left:20px;display:grid;gap:6px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:6px;font-size:13px;z-index:20;max-width:calc(100% - 32px)}
+.loading{padding:40px;text-align:center;color:var(--muted)}
+#oTable td:first-child{min-width:84px}
+#oTable td:first-child b{white-space:nowrap}
+@media (max-width:560px){ th,td{padding:8px 7px} .cell{min-width:96px} td.herb{max-width:110px} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="hrow">
+      <div><h1>한약재 단가비교</h1><div class="sub" id="status">불러오는 중…</div><div class="sub" style="color:var(--warn)">데모 화면입니다. 업체 이름 외의 상품·가격은 모두 예시이며, 바꾼 내용은 저장되지 않습니다.</div></div>
+      <div class="seg" id="unitSeg" role="group" aria-label="가격 표시 단위">
+        <button type="button" data-u="kg" aria-pressed="true">원/kg</button>
+        <button type="button" data-u="geun" aria-pressed="false">원/근</button>
+        <button type="button" data-u="100g" aria-pressed="false">원/100g</button>
+      </div>
+    </div>
+    <nav id="tabs" role="tablist">
+      <button type="button" role="tab" data-t="compare" aria-selected="true">비교표</button>
+      <button type="button" role="tab" data-t="order" aria-selected="false">주문 계산</button>
+      <button type="button" role="tab" data-t="manage" aria-selected="false">관리</button>
+      <button type="button" role="tab" data-t="button" aria-selected="false">가격 보내기 버튼</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- 비교표 -->
+  <section id="p-compare">
+    <div class="bar">
+      <input id="q" class="grow" type="search" placeholder="약재 검색 (이름·다른이름·메모)" aria-label="약재 검색">
+      <select id="originF" aria-label="원산지"><option value="">원산지 전체</option><option value="국산">국산만</option><option value="수입">수입만</option></select>
+      <select id="colorF" aria-label="글자색"></select>
+      <label class="sub" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="favOnly"> 자주 쓰는 약재만</label>
+      <label class="sub" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="watchOnly"> 확인 목록만</label>
+    </div>
+    <div class="panel watchbar" id="watchBar"></div>
+    <div class="legend" id="legendBox"></div>
+    <div class="summary" id="cmpSummary"></div>
+    <div class="scroll"><table id="cmpTable"><tbody><tr><td class="loading">불러오는 중…</td></tr></tbody></table></div>
+    <div class="sub">약재 이름을 누르면 업체별 모든 상품이 펼쳐집니다. 빨간 <span class="stamp" style="transform:none">최저</span> 칸이 그 약재의 최저 단가입니다. 14일 넘게 갱신되지 않은 가격은 노란색입니다.</div>
+  </section>
+
+  <!-- 주문 계산 -->
+  <section id="p-order" hidden>
+    <div class="panel">
+      <h2>이번 주문 목록</h2>
+      <p class="help">약재 이름과 <b>근 수</b>를 한 줄에 하나씩, 또는 쉼표로 이어서 한꺼번에 적으세요. 근 수는 비워 두고 나중에 표에서 넣어도 됩니다. 원산지·규격은 넣은 뒤 표에서 고를 수 있습니다. 목록은 모든 직원에게 공유됩니다.</p>
+      <textarea id="oBulk" rows="4" placeholder="당귀 3&#10;천궁 2, 감초 5&#10;작약" aria-label="약재와 근 수 한꺼번에 입력"></textarea>
+      <div class="bar" style="margin-top:8px"><span class="sub grow" id="oBulkMsg"></span><button class="btn primary" type="button" id="oAdd">주문 목록에 넣기</button></div>
+      <datalist id="herbList"></datalist>
+    </div>
+    <div class="scroll"><table id="oTable"></table></div>
+    <p class="sub" style="margin:-6px 0 0">빨간 금액이 그 약재의 최저가, <b>네모 테두리</b>가 지금 담긴 업체입니다. 다른 업체 칸을 누르면 그쪽으로 바뀝니다. 비교와 자동 선택은 g당 가격(원/kg) 기준입니다. 칸 아래 금액은 포장 단위로 필요량을 채웠을 때 실제로 내는 돈이고, (+g)은 필요량보다 더 받는 양입니다.</p>
+    <div class="grid2">
+      <div class="panel">
+        <h2>나눠 주문 vs 한 곳에서 주문</h2>
+        <p class="help">배송비 포함 총액</p>
+        <div class="cmp" id="oCmp"></div>
+      </div>
+    </div>
+    <div class="grid2" id="oVendors"></div>
+    <div class="panel" id="cartPanel">
+      <h2>쇼핑몰 장바구니에 담기</h2>
+      <p class="help">위 업체별 주문이 맞으면 확정하세요. 그다음 쇼핑몰(바이퓨어·메디마켓)에 로그인해서 즐겨찾기 <b>약재가격보내기</b> → <b>주문 목록 장바구니에 담기</b>를 누르면 개수대로 담깁니다. 메디마켓은 상품을 하나씩 검색해서 담으니 품목당 몇 초씩 걸립니다. 결제는 직접 확인하고 하세요. 쿠팡은 직접 담아야 합니다.</p>
+      <div class="bar"><button class="btn primary" type="button" id="cartSave">장바구니 담을 목록 확정</button><span class="sub" id="cartMsg"></span><span class="grow"></span><button class="btn danger" type="button" id="oClear">주문 목록 비우기</button></div>
+    </div>
+  </section>
+
+  <!-- 관리 -->
+  <section id="p-manage" hidden>
+    <div class="grid2">
+      <div class="panel">
+        <h2>업체 배송비·최소 주문금액</h2>
+        <p class="help">배송비, 무료배송 기준, 최소 주문금액(예: 바이퓨어 100,000원)을 넣으면 주문 계산에 반영됩니다.</p>
+        <div class="list" id="supList"></div>
+      </div>
+      <div class="panel">
+        <h2>글자색 의미</h2>
+        <p class="help">약재 목록 사진의 글자색을 그대로 옮겼습니다. 색마다 뜻을 적어 두면 비교표에 같이 보입니다.</p>
+        <div class="formgrid">
+          <label class="f"><span class="c-R">빨강</span><input id="lgR" placeholder="예: 냉장 보관"></label>
+          <label class="f"><span class="c-G">초록</span><input id="lgG"></label>
+          <label class="f"><span class="c-B">파랑</span><input id="lgB"></label>
+          <label class="f">검정<input id="lgK"></label>
+        </div>
+        <div class="bar" style="margin-top:10px;justify-content:flex-end"><button class="btn primary" type="button" id="lgSave">저장</button></div>
+      </div>
+      <div class="panel">
+        <h2>약재 메모</h2>
+        <p class="help">다른 이름(예: 율무 → 의이인)을 적으면 같은 약재로 묶여 비교됩니다. 메모는 비교표와 주문 목록에 노란 글씨로 보입니다.</p>
+        <form id="memoForm" class="formgrid">
+          <label class="f">약재<input id="mHerb" required list="herbList"></label>
+          <label class="f">다른 이름 (쉼표로 구분)<input id="mAlias"></label>
+          <label class="f" style="grid-column:1/-1">메모<input id="mNote"></label>
+          <label class="f">글자색<select id="mColor"><option value="">검정</option><option value="R">빨강</option><option value="G">초록</option><option value="B">파랑</option></select></label>
+          <label class="sub" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="mFav"> 자주 쓰는 약재</label>
+          <div class="bar" style="justify-content:flex-end"><button class="btn" type="button" id="mCancel" hidden>취소</button><button class="btn primary" type="submit" id="mSave">저장</button></div>
+        </form>
+        <div class="list" id="memoList" style="margin-top:10px;max-height:420px;overflow:auto"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 가격 보내기 버튼 -->
+  <section id="p-button" hidden>
+    <div class="panel">
+      <h2>가격 보내기 버튼이란</h2>
+      <p class="help" style="margin:0">윈도우 PC와 맥(Mac)의 크롬·엣지·사파리 즐겨찾기 막대에 저장해 두는 버튼입니다. 쇼핑몰에 로그인한 화면에서 이 즐겨찾기를 누르면, 화면의 약재 가격을 읽어 이 비교 사이트로 보냅니다. 따로 설치할 프로그램은 없습니다. 주문하는 PC마다 한 번씩 저장해 두세요.</p>
+    </div>
+    <div class="grid2">
+      <div class="panel">
+        <h2>버튼 저장하기</h2>
+        <ol class="steps">
+          <li>즐겨찾기 막대를 켭니다.<br>윈도우 크롬·엣지: <b>Ctrl+Shift+B</b> · 맥 크롬·엣지: <b>⌘+Shift+B</b> · 맥 사파리: 메뉴 <b>보기 → 즐겨찾기 막대 보기</b></li>
+          <li>아래 초록 버튼을 마우스로 끌어 즐겨찾기 막대에 놓습니다.</li>
+          <li>쇼핑몰에 로그인한 뒤 즐겨찾기 막대의 <b>약재가격보내기</b>를 누릅니다.</li>
+        </ol>
+        <p style="margin:14px 0 4px"><a class="bm" id="bmLink" href="#">약재가격보내기</a></p>
+      </div>
+      <div class="panel">
+        <h2>끌어 놓기가 안 될 때</h2>
+        <ol class="steps">
+          <li>아래 <b>버튼 주소 복사</b>를 누릅니다.</li>
+          <li><b>크롬·엣지</b>(윈도우·맥): 즐겨찾기 막대에서 오른쪽 클릭 → <b>페이지 추가</b>(엣지는 <b>즐겨찾기 추가</b>) → 이름 <b>약재가격보내기</b>, URL에 붙여넣기 → 저장</li>
+          <li><b>맥 사파리</b>: 아무 페이지에서 ⌘+D로 즐겨찾기 막대에 추가 → 막대의 그 즐겨찾기를 오른쪽 클릭 → <b>주소 편집</b> → 붙여넣기, 이름도 <b>약재가격보내기</b>로 변경</li>
+        </ol>
+        <div class="bar" style="margin:12px 0 8px"><button class="btn primary" type="button" id="bmCopy">버튼 주소 복사</button><span class="sub" id="bmMsg"></span></div>
+        <textarea class="code" id="bmCode" readonly aria-label="버튼 주소"></textarea>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>쇼핑몰별 사용법</h2>
+      <div class="list">
+        <div class="row"><div><b>메디스트림 메디마켓</b><div class="meta">로그인 → 한약재 목록 화면 → 버튼 → "확인 목록 약재만 보내기" (처음엔 "전체 보내기")</div></div><a class="btn sm" target="_blank" rel="noopener" href="https://market.medistream.co.kr/categories/medicinal-herbs?sort=three_months:desc&view=simple">열기</a></div>
+        <div class="row"><div><b>바이퓨어</b><div class="meta">로그인 → 아무 화면 → 버튼 → "확인 목록 약재만 보내기" (몇 초, 처음엔 "전체 보내기" 1~2분)</div></div><a class="btn sm" target="_blank" rel="noopener" href="https://bypure.co.kr/shop.php?goPage=GoodList1&cat_no=1">열기</a></div>
+        <div class="row"><div><b>쿠팡</b><div class="meta">약재 이름으로 검색 → 버튼 → 보낼 상품 고르기 → "고른 상품 보내기"</div></div><a class="btn sm" target="_blank" rel="noopener" href="https://www.coupang.com">열기</a></div>
+      </div>
+    </div>
+  </section>
+</main>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+var BOOT = {"url":"","key":""};
+</script>
+<script>
+(function () {
+  "use strict";
+  var $ = function (s) { return document.querySelector(s); };
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function won(n) { return Math.round(n).toLocaleString("ko-KR"); }
+  function wt(g) { return g >= 1000 ? (+(g / 1000).toFixed(2)) + "kg" : (+g.toFixed(1)) + "g"; }
+  var DISP = { kg: { g: 1000, l: "/kg" }, geun: { g: 600, l: "/근" }, "100g": { g: 100, l: "/100g" } };
+  var STALE_DAYS = 14;
+  var toastT;
+  function toast(m) { var t = $("#toast"); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true; }, 2600); }
+  var pref = { unit: "kg", tab: "compare", origin: "", fav: false };
+  try { Object.assign(pref, JSON.parse(localStorage.getItem("herbcmp") || "{}")); } catch (e) {}
+  function savePref() { try { localStorage.setItem("herbcmp", JSON.stringify(pref)); } catch (e) {} }
+
+  /* ---------- 서버 연결 ---------- */
+  var HAS_GAS = typeof google !== "undefined" && google.script && google.script.run;
+  function call(fn) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    return new Promise(function (ok, fail) {
+      if (!HAS_GAS) { if (fn === "saveOrder") DEMO.order = args[0]; if (fn === "saveWatch") DEMO.watch = args[0]; ok(DEMO); return; }
+      var r = google.script.run.withSuccessHandler(ok).withFailureHandler(function (e) { toast("저장하지 못했습니다: " + (e && e.message || e)); fail(e); });
+      r[fn].apply(r, args);
+    });
+  }
+  var D = { products: [], memos: [], suppliers: [], order: [], watch: [] };
+  function load(d) { D = d; index(); renderAll(); }
+
+  /* ---------- 약재 이름 정리 ---------- */
+  var alias = {}, memoBy = {};
+  function canon(h) { h = String(h || "").trim(); return alias[h] || h; }
+  function isDomestic(o) { return /국산|한국|국내/.test(o || ""); }
+  function originOk(p, f) { return !f || (f === "국산" ? isDomestic(p.origin) : !isDomestic(p.origin) && !!p.origin); }
+  var byHerb = {};
+  function index() {
+    alias = {}; memoBy = {};
+    D.memos.forEach(function (m) {
+      memoBy[m.herb] = m;
+      m.aliases.split(/[,，、]/).map(function (s) { return s.trim(); }).filter(Boolean).forEach(function (a) { alias[a] = m.herb; });
+    });
+    byHerb = {};
+    D.products.forEach(function (p) { p.perG = p.price / p.grams; p.h = canon(p.herb); (byHerb[p.h] = byHerb[p.h] || []).push(p); });
+    var names = Object.keys(byHerb).concat(D.memos.map(function (m) { return m.herb; }));
+    $("#herbList").innerHTML = Array.from(new Set(names)).sort(ko).map(function (n) { return '<option value="' + esc(n) + '">'; }).join("");
+  }
+  function ko(a, b) { return String(a).localeCompare(String(b), "ko"); }
+  function supplierNames() {
+    var s = D.suppliers.map(function (x) { return x.name; });
+    D.products.forEach(function (p) { if (s.indexOf(p.supplier) < 0) s.push(p.supplier); });
+    return s;
+  }
+  function supBy(n) { return D.suppliers.find(function (s) { return s.name === n; }) || { name: n, ship: 0, free: 0 }; }
+  function daysAgo(at) { if (!at) return 999; var t = new Date(String(at).replace(" ", "T") + ":00+09:00").getTime(); return isNaN(t) ? 999 : (Date.now() - t) / 864e5; }
+
+  /* ---------- 상단 ---------- */
+  function renderStatus() {
+    var last = {};
+    D.products.forEach(function (p) { if (!last[p.supplier] || p.at > last[p.supplier]) last[p.supplier] = p.at; });
+    var parts = supplierNames().map(function (s) { var a = last[s]; return esc(s) + " " + (a ? '<span class="' + (daysAgo(a) > STALE_DAYS ? "stale" : "") + '">' + esc(a.slice(5, 10).replace("-", "/")) + "</span>" : "없음"); });
+    $("#status").innerHTML = "가격 " + D.products.length.toLocaleString() + "개 · 마지막 갱신 " + parts.join(" · ") + (HAS_GAS ? "" : " · <b>미리보기(예시 데이터)</b>");
+  }
+
+  /* ---------- 확인 목록: 가격 보내기 버튼이 이 약재만 빠르게 가져옴 ---------- */
+  var watchSet = {};
+  function renderWatch() {
+    watchSet = {};
+    (D.watch || []).forEach(function (h) { watchSet[h] = 1; });
+    var n = (D.watch || []).length;
+    $("#watchBar").innerHTML = '<span class="grow"><b style="color:var(--fg)">확인 목록 ' + n + '종</b> · 약재 이름 앞 칸을 체크하면, 쇼핑몰에서 가격 보내기 버튼을 눌렀을 때 이 약재들만 빠르게 가져옵니다.' + (n ? "<br>" + esc(D.watch.slice(0, 15).join(", ")) + (n > 15 ? " 외 " + (n - 15) + "종" : "") : "") + "</span>" +
+      '<button class="btn sm" type="button" id="wOrder">주문 목록 약재 넣기</button>' +
+      '<button class="btn sm" type="button" id="wFav">★ 약재 리스트 전체 넣기</button>' +
+      (n ? '<button class="btn sm ghost danger" type="button" id="wClear">비우기</button>' : "");
+  }
+  function saveWatch(list) { return call("saveWatch", list).then(load); }
+  $("#watchBar").addEventListener("click", function (e) {
+    var id = e.target.id, cur = (D.watch || []).slice();
+    if (id === "wOrder") { D.order.forEach(function (o) { var h = canon(o.herb); if (cur.indexOf(h) < 0) cur.push(h); }); saveWatch(cur).then(function () { toast("주문 목록 약재를 넣었습니다."); }); }
+    if (id === "wFav") { D.memos.forEach(function (m) { if (m.fav && cur.indexOf(m.herb) < 0) cur.push(m.herb); }); saveWatch(cur).then(function () { toast("약재 리스트 전체를 넣었습니다."); }); }
+    if (id === "wClear") {
+      if (e.target.dataset.armed !== "1") { e.target.dataset.armed = "1"; e.target.textContent = "한 번 더 누르면 비웁니다"; return; }
+      saveWatch([]);
+    }
+  });
+  $("#cmpTable").addEventListener("change", function (e) {
+    var c = e.target.closest("[data-watch]"); if (!c) return;
+    var h = c.getAttribute("data-watch"), cur = (D.watch || []).filter(function (x) { return x !== h; });
+    if (c.checked) cur.push(h);
+    D.watch = cur; renderWatch();
+    clearTimeout(watchT); watchT = setTimeout(function () { saveWatch(D.watch.slice()); }, 800);
+  });
+  var watchT;
+
+  /* ---------- 비교표 ---------- */
+  var open = {};
+  /* ---------- 쿠팡: 가격 대신 검색 결과 바로가기 ---------- */
+  function isLinkOnly(s) { return s === "쿠팡"; }
+  function searchLink(s, h) {
+    var m = memoBy[h], q = h;
+    // 쿠팡에서는 일반 이름이 더 잘 찾아지는 경우 (예: 의이인 → 율무, 교맥 → 메밀)
+    if (m && m.aliases && /쿠팡/.test(m.note || "")) q = h + " " + m.aliases.split(/[,，、]/)[0].trim();
+    return "https://www.coupang.com/np/search?q=" + encodeURIComponent(q);
+  }
+
+  /* ---------- 규격(등급) ---------- */
+  // 상품명에서 약재 이름과 [꼬리표]를 뺀 나머지 = 규격 (예: "분골 A", "양외 2호")
+  function spec(p) {
+    var t = String(p.title || "").replace(/^(\s*\[[^\]]*\]\s*)+/, "").replace(/※.*$/, "").replace(/\(농산물\)/g, "");
+    [p.herb, p.h].forEach(function (n) { if (n && t.indexOf(n) === 0) t = t.slice(n.length); });
+    if (p.origin) t = t.split(p.origin).join("").replace(/\(\s*\)/g, "");
+    t = t.replace(/^[\s:,]+/, "").replace(/(^|,)\s*[\d.]+\s*(g|kg|근)\s*(,|$)/i, " ").replace(/\s+/g, " ").trim();
+    return t.length > 40 ? t.slice(0, 40) + "…" : t;
+  }
+  function specCount(list) { var s = {}; list.forEach(function (p) { s[p.supplier + "·" + spec(p)] = 1; }); return Object.keys(s).length; }
+  function gradesOf(h) { return (D.grades || []).filter(function (g) { return g.herb === h; }); }
+  function detailHtml(h, all, cols, unit) {
+    var sorted = all.slice().sort(function (a, b) { return a.perG - b.perG; });
+    var gs = gradesOf(h);
+    var inG = {}; gs.forEach(function (g) { g.items.forEach(function (k) { (inG[k] = inG[k] || []).push(g.name); }); });
+    return '<tr class="detail"><td colspan="' + cols + '">' +
+      '<div class="gtools"><span class="meta">같은 품질·규격끼리만 비교하려면, 업체별로 같은 규격 상품을 체크하고 이름을 붙이세요. (예: 녹용 → "뉴질랜드 상대 A")</span>' +
+      '<span class="bar"><input id="gName" placeholder="규격 이름" aria-label="규격 이름" style="width:170px"><button class="btn sm primary" type="button" data-gmake="' + esc(h) + '">선택한 상품을 규격으로 묶기</button></span></div>' +
+      (gs.length ? '<div class="bar" style="margin:6px 0">' + gs.map(function (g) { return '<span class="chip ok">' + esc(g.name) + " · " + g.items.length + '개 <button class="xbtn" type="button" data-gdel="' + esc(g.name) + '" data-gh="' + esc(h) + '" aria-label="' + esc(g.name) + ' 묶음 삭제">×</button></span>'; }).join("") + "</div>" : "") +
+      '<div class="plist">' + (sorted.length ? sorted.map(function (p, i) {
+        var k = p.supplier + "|" + p.key;
+        return '<label class="pi' + (i === 0 ? " win" : "") + '"><span><input type="checkbox" class="gpick" value="' + esc(k) + '"> <b>' + esc(p.supplier) + "</b> · " + '<a target="_blank" rel="noopener" href="' + esc(p.url) + '">' + esc(p.title) + "</a>" + (inG[k] ? ' <span class="chip">' + esc(inG[k].join(", ")) + "</span>" : "") + "</span>" +
+          '<span class="meta">' + esc(p.origin || "") + " · " + wt(p.grams) + " " + won(p.price) + '원 · <b style="color:var(--fg)">' + won(p.perG * unit.g) + "원" + unit.l + "</b> · " + esc(String(p.at).slice(5, 10)) + "</span></label>";
+      }).join("") : '<div class="meta">등록된 상품이 없습니다.</div>') + "</div></td></tr>";
+  }
+  $("#cmpTable").addEventListener("click", function (e) {
+    var mk = e.target.closest("[data-gmake]"), del = e.target.closest("[data-gdel]");
+    if (mk) {
+      var h = mk.getAttribute("data-gmake"), row = mk.closest("tr");
+      var name = row.querySelector("#gName").value.trim();
+      var items = Array.from(row.querySelectorAll(".gpick:checked")).map(function (c) { return c.value; });
+      if (!name || !items.length) { toast("규격 이름을 적고 묶을 상품을 체크하세요."); return; }
+      call("saveGrade", { herb: h, name: name, items: items }).then(load).then(function () { toast(h + " · " + name + " 규격을 만들었습니다."); });
+    }
+    if (del) {
+      if (del.dataset.armed !== "1") { del.dataset.armed = "1"; del.textContent = "삭제?"; return; }
+      call("deleteGrade", del.getAttribute("data-gh"), del.getAttribute("data-gdel")).then(load);
+    }
+  }, true);
+
+  function renderCompare() {
+    var sups = supplierNames();
+    var q = $("#q").value.trim();
+    var herbs = Object.keys(byHerb);
+    D.memos.forEach(function (m) { if (herbs.indexOf(m.herb) < 0) herbs.push(m.herb); });
+    herbs = herbs.filter(function (h) {
+      var m = memoBy[h];
+      if (pref.fav && !(m && m.fav)) return false;
+      if (pref.watchOnly && watchSet[h] !== 1) return false;
+      if (pref.color && ((m && m.color) || "K") !== pref.color) return false;
+      if (!q) return true;
+      return h.indexOf(q) >= 0 || (m && (m.aliases.indexOf(q) >= 0 || m.note.indexOf(q) >= 0));
+    }).sort(function (a, b) { var fa = memoBy[a] && memoBy[a].fav ? 0 : 1, fb = memoBy[b] && memoBy[b].fav ? 0 : 1; return fa - fb || ko(a, b); });
+    if (!D.products.length) {
+      $("#cmpTable").innerHTML = '<tbody><tr><td class="empty">아직 가격이 없습니다. <b>가격 보내기 버튼</b> 탭에서 버튼을 저장한 뒤, 쇼핑몰에서 눌러 가격을 보내 주세요.</td></tr></tbody>';
+      $("#cmpSummary").innerHTML = ""; return;
+    }
+    var unit = DISP[pref.unit];
+    var wins = {}; sups.forEach(function (s) { wins[s] = 0; });
+    var html = '<thead><tr><th class="herb">약재</th>' + sups.map(function (s) { var x = supBy(s); return "<th>" + (x.url ? '<a target="_blank" rel="noopener" href="' + esc(x.url) + '">' + esc(s) + " ↗</a>" : esc(s)) + "</th>"; }).join("") + "</tr></thead><tbody>";
+    var shown = 0;
+    // 한 줄(약재 전체 또는 규격 하나)의 업체별 최저가 칸
+    function cells(list, h, sub) {
+      list = list.filter(function (p) { return !isLinkOnly(p.supplier); });
+      var best = {}; list.forEach(function (p) { if (!best[p.supplier] || p.perG < best[p.supplier].perG) best[p.supplier] = p; });
+      var vals = Object.keys(best).map(function (k) { return best[k].perG; });
+      var min = vals.length ? Math.min.apply(null, vals) : null;
+      return sups.map(function (s) {
+        if (isLinkOnly(s)) return sub ? "<td></td>" : '<td><a class="btn sm cpbtn" target="_blank" rel="noopener" href="' + searchLink(s, h) + '">쿠팡에서 확인하기 ↗</a></td>';
+        var p = best[s];
+        if (!p) return '<td><div class="cell none">—</div></td>';
+        var isBest = vals.length > 1 && p.perG === min;
+        if (isBest) wins[s]++;
+        var diff = Math.round((p.perG / min - 1) * 100);
+        var sp = spec(p);
+        return '<td><div class="cell' + (isBest ? " best" : "") + '" data-open="' + esc(h) + '"><span class="p">' + won(p.perG * unit.g) + '<span class="u">원' + unit.l + "</span>" + (isBest ? '<span class="stamp">최저</span>' : "") + "</span>" +
+          (!isBest && vals.length > 1 ? '<span class="diff">+' + diff + "%</span>" : "") +
+          (sp ? '<span class="d spec">' + esc(sp) + "</span>" : "") +
+          '<span class="d' + (daysAgo(p.at) > STALE_DAYS ? " stale" : "") + '">' + esc(p.origin || "원산지 미표기") + " · " + wt(p.grams) + " " + won(p.price) + "원</span></div></td>";
+      }).join("");
+    }
+    herbs.slice(0, 400).forEach(function (h) {
+      var all = byHerb[h] || [];
+      var list = all.filter(function (p) { return originOk(p, pref.origin); });
+      var m = memoBy[h];
+      var gs = gradesOf(h);
+      var multi = specCount(all);
+      shown++;
+      html += '<tr><td class="herb"><input type="checkbox" class="wchk" data-watch="' + esc(h) + '"' + (watchSet[h] ? " checked" : "") + ' aria-label="' + esc(h) + ' 확인 목록에 넣기" title="확인 목록 (가격 보내기 버튼으로 이 약재만 빠르게 갱신)"><b data-open="' + esc(h) + '">' + (m && m.fav ? '<span class="fav">★ </span>' : "") + '<span class="c-' + esc(m && m.color || "K") + '">' + esc(h) + "</span></b>" +
+        (multi > 1 ? ' <span class="chip" data-open="' + esc(h) + '" title="같은 약재가 품질·규격별로 여러 상품. 눌러서 규격별로 묶으세요">규격 ' + multi + '종' + (gs.length ? " · 묶음 " + gs.length : "") + "</span>" : "") +
+        (m && m.aliases ? '<span class="al">' + esc(m.aliases) + "</span>" : "") + (m && m.note ? '<span class="note">' + esc(m.note) + "</span>" : "") + "</td>";
+      html += cells(list, h) + "</tr>";
+      // 규격 묶음마다 한 줄씩: 같은 등급끼리만 비교
+      gs.forEach(function (g) {
+        var gl = list.filter(function (p) { return g.items.indexOf(p.supplier + "|" + p.key) >= 0; });
+        html += '<tr class="grade"><td class="herb"><span class="gname">↳ ' + esc(g.name) + "</span></td>" + cells(gl, h, true) + "</tr>";
+      });
+      if (open[h]) html += detailHtml(h, all, sups.length + 1, unit);
+    });
+    html += "</tbody>";
+    $("#cmpTable").innerHTML = shown ? html : '<tbody><tr><td class="empty">조건에 맞는 약재가 없습니다.</td></tr></tbody>';
+    $("#cmpSummary").innerHTML = "<span>약재 <b>" + shown + "</b>종</span>" + sups.filter(function (s) { return !isLinkOnly(s); }).map(function (s) { return "<span>" + esc(s) + " 최저 <b>" + wins[s] + "</b>종</span>"; }).join("");
+  }
+  $("#cmpTable").addEventListener("click", function (e) {
+    if (e.target.closest("tr.detail")) return;
+    var t = e.target.closest("[data-open]"); if (!t) return;
+    var h = t.getAttribute("data-open"); open[h] = !open[h]; renderCompare();
+  });
+  $("#q").addEventListener("input", renderCompare);
+  $("#originF").addEventListener("change", function (e) { pref.origin = e.target.value; savePref(); renderCompare(); });
+  $("#favOnly").addEventListener("change", function (e) { pref.fav = e.target.checked; savePref(); renderCompare(); });
+  $("#watchOnly").addEventListener("change", function (e) { pref.watchOnly = e.target.checked; savePref(); renderCompare(); });
+  $("#colorF").addEventListener("change", function (e) { pref.color = e.target.value; savePref(); renderCompare(); });
+  /* ---------- 글자색 (사진 목록의 색 구분) ---------- */
+  var CNAME = { R: "빨강", G: "초록", B: "파랑", K: "검정" };
+  function legendLabel(k) { var l = (D.legend || {})[k]; return CNAME[k] + (l ? " · " + l : ""); }
+  function renderLegend() {
+    $("#colorF").innerHTML = '<option value="">글자색 전체</option>' + ["R", "G", "B", "K"].map(function (k) { return '<option value="' + k + '"' + (pref.color === k ? " selected" : "") + ">" + esc(legendLabel(k)) + "</option>"; }).join("");
+    $("#legendBox").innerHTML = '<span class="meta">글자색 (약재 목록 사진과 같음):</span>' + ["R", "G", "B", "K"].map(function (k) { return '<span><b class="c-' + k + '">■</b> ' + esc(legendLabel(k)) + "</span>"; }).join("");
+    ["R", "G", "B", "K"].forEach(function (k) { var el = $("#lg" + k); if (el && document.activeElement !== el) el.value = (D.legend || {})[k] || ""; });
+  }
+
+  /* ---------- 주문 계산 ---------- */
+  function plan() {
+    var lines = D.order.map(function (it, idx) {
+      var h = canon(it.herb);
+      var g = it.grade ? gradesOf(h).find(function (x) { return x.name === it.grade; }) : null;
+      var cands = (byHerb[h] || []).filter(function (p) { return originOk(p, it.origin) && (!g || g.items.indexOf(p.supplier + "|" + p.key) >= 0); });
+      // 업체별 kg당 최저 (양을 정하기 전에 가격을 보려고)
+      var bestBy = {}; cands.forEach(function (p) { if (!bestBy[p.supplier] || p.perG < bestBy[p.supplier].perG) bestBy[p.supplier] = p; });
+      var perSup = Object.keys(bestBy).map(function (k) { return bestBy[k]; }).sort(function (a, b) { return a.perG - b.perG; });
+      if (!(it.g > 0)) return { idx: idx, it: it, h: h, opts: [], o: null, pending: true, perSup: perSup };
+      var opts = cands.map(function (p) { var packs = Math.ceil(it.g / p.grams - 1e-9); return { p: p, packs: packs, cost: packs * p.price, extra: packs * p.grams - it.g }; }).sort(function (a, b) { return a.p.perG - b.p.perG || a.cost - b.cost; });
+      var chosen = it.pick ? opts.find(function (o) { return o.p.supplier + "|" + o.p.key === it.pick; }) : null;
+      return { idx: idx, it: it, h: h, opts: opts, o: chosen || opts[0] || null, perSup: perSup };
+    });
+    function ship(s, sub) { var x = supBy(s); return x.free && sub >= x.free ? 0 : (x.ship || 0); }
+    function totalOf(assign) {
+      var subs = {}; assign.forEach(function (o) { if (o) subs[o.p.supplier] = (subs[o.p.supplier] || 0) + o.cost; });
+      var t = 0; Object.keys(subs).forEach(function (k) { t += subs[k] + ship(k, subs[k]); }); return t;
+    }
+    // 최소 주문금액 (예: 바이퓨어 10만원): 모자라면 ① 가격 차이가 적은 품목을 옮겨 채우기 ② 그 업체 품목을 다른 곳으로 빼기 중 싼 쪽
+    var minNotes = [];
+    if (pref.minRule === true) supplierNames().forEach(function (s) {
+      var min = supBy(s).min; if (!min) return;
+      var cur = lines.map(function (L) { return L.o; });
+      var sub = cur.reduce(function (a, o) { return a + (o && o.p.supplier === s ? o.cost : 0); }, 0);
+      if (!(sub > 0 && sub < min)) return;
+      var t0 = totalOf(cur);
+      var A = cur.slice(), subA = sub, movedA = [];
+      lines.map(function (L, i) {
+        if (!L.o || L.o.p.supplier === s || L.it.pick) return null;
+        var alt = L.opts.find(function (o) { return o.p.supplier === s; });
+        return alt ? { i: i, alt: alt, extra: alt.cost - L.o.cost } : null;
+      }).filter(Boolean).sort(function (a, b) { return a.extra / a.alt.cost - b.extra / b.alt.cost; }).forEach(function (c) {
+        if (subA >= min) return; A[c.i] = c.alt; subA += c.alt.cost; movedA.push(c.i);
+      });
+      var B = cur.slice(), okB = true, movedB = [];
+      lines.forEach(function (L, i) {
+        if (!L.o || L.o.p.supplier !== s) return;
+        var alt = L.it.pick ? null : L.opts.find(function (o) { return o.p.supplier !== s; });
+        if (!alt) { okB = false; return; }
+        B[i] = alt; movedB.push(i);
+      });
+      var tA = subA >= min ? totalOf(A) : Infinity, tB = okB ? totalOf(B) : Infinity;
+      if (tA === Infinity && tB === Infinity) { minNotes.push({ s: s, min: min, sub: sub, fail: true }); return; }
+      var useA = tA <= tB, pick = useA ? A : B, moved = useA ? movedA : movedB;
+      pick.forEach(function (o, i) { lines[i].o = o; });
+      moved.forEach(function (i) { lines[i].minMoved = true; });
+      minNotes.push({ s: s, min: min, sub: sub, mode: useA ? "fill" : "out", herbs: moved.map(function (i) { return lines[i].h; }), extra: (useA ? tA : tB) - t0 });
+    });
+    var groups = {};
+    lines.forEach(function (L) { if (L.o) (groups[L.o.p.supplier] = groups[L.o.p.supplier] || []).push(L); });
+    var vend = Object.keys(groups).map(function (s) { var sub = groups[s].reduce(function (a, L) { return a + L.o.cost; }, 0); return { s: s, lines: groups[s], sub: sub, sh: ship(s, sub) }; });
+    var split = vend.reduce(function (a, v) { return a + v.sub + v.sh; }, 0);
+    var singles = supplierNames().map(function (s) {
+      var sub = 0;
+      for (var i = 0; i < lines.length; i++) { if (lines[i].pending) continue; var o = lines[i].opts.find(function (x) { return x.p.supplier === s; }); if (!o) return null; sub += o.cost; }
+      return lines.some(function (L) { return !L.pending; }) ? { s: s, total: sub + ship(s, sub) } : null;
+    }).filter(Boolean).sort(function (a, b) { return a.total - b.total; });
+    return { lines: lines, vend: vend, split: split, singles: singles, minNotes: minNotes };
+  }
+  // 업체별 kg당 최저가 한 줄씩 (양 정하기 전에 보는 용도)
+  function priceList(L) {
+    if (!L.perSup.length) return L.pending ? '<span class="chip warn">가격 없음</span>' : "";
+    var min = L.perSup[0].perG;
+    return '<div class="plines">' + L.perSup.map(function (p) {
+      return '<div class="' + (p.perG === min && L.perSup.length > 1 ? "lo" : "") + '"><span>' + esc(p.supplier) + '</span><span class="num">' + won(p.perG * 1000) + '원/kg <small>(' + wt(p.grams) + " " + won(p.price) + "원)</small></span></div>";
+    }).join("") + "</div>";
+  }
+  function minNoteHtml(notes) {
+    var toggle = '<label class="meta" style="display:flex;gap:6px;align-items:center;background:none;padding:0"><input type="checkbox" id="minRule"' + (pref.minRule === true ? " checked" : "") + "> 최소 주문금액 자동으로 맞추기 (끄면 표 오른쪽 칸에 추천만 표시)</label>";
+    return toggle + (notes || []).map(function (n) {
+      if (n.fail) return '<p class="minnote warn">' + esc(n.s) + " 최소 주문금액 " + won(n.min) + "원에 " + won(n.min - n.sub) + "원 모자랍니다. 옮길 수 있는 품목이 없어 직접 품목을 더하거나 다른 곳에서 주문하세요.</p>";
+      return '<p class="minnote">' + esc(n.s) + " 최소 " + won(n.min) + "원 (원래 " + won(n.sub) + "원): " + (n.mode === "fill"
+        ? "가격 차이가 적은 <b>" + n.herbs.map(esc).join(", ") + "</b>을(를) " + esc(n.s) + "로 옮겨 채웠습니다"
+        : esc(n.s) + " 품목 <b>" + n.herbs.map(esc).join(", ") + "</b>을(를) 다른 곳으로 옮기는 게 더 쌉니다") +
+        (n.extra > 0 ? " (최저가로만 나눴을 때보다 +" + won(n.extra) + "원)." : " (배송비까지 따지면 오히려 " + won(-n.extra) + "원 쌉니다).") + "</p>";
+    }).join("");
+  }
+  $("#oCmp").addEventListener("change", function (e) { if (e.target.id === "minRule") { pref.minRule = e.target.checked; savePref(); renderOrder(); } });
+  function renderOrder() {
+    var P = plan();
+    if (!P.lines.length) {
+      $("#oTable").innerHTML = '<tbody><tr><td class="empty">주문할 약재와 필요량을 위에서 추가하세요.</td></tr></tbody>';
+      $("#oCmp").innerHTML = '<div style="background:none" class="meta">목록을 채우면 비교가 나옵니다.</div>';
+      $("#oVendors").innerHTML = ""; return;
+    }
+    var sups = supplierNames();
+    // 무료배송·최소금액 기준을 못 넘긴 업체 → 그 업체로 옮기면 좋은 품목을 오른쪽 칸에
+    var target = null;
+    [true, false].forEach(function (useMin) { if (target) return; P.vend.forEach(function (v) { var x = supBy(v.s), th = useMin ? x.min : x.free; if (th && v.sub > 0 && v.sub < th && !target) target = { s: v.s, th: th, sub: v.sub, gap: th - v.sub, kind: useMin ? "최소 주문금액" : "무료배송 기준" }; }); });
+    var sugg = {};
+    if (target) {
+      var cand = P.lines.filter(function (L) { return L.o && L.o.p.supplier !== target.s; }).map(function (L) {
+        var alt = L.opts.find(function (o) { return o.p.supplier === target.s; });
+        return alt ? { L: L, alt: alt, diff: alt.cost - L.o.cost } : null;
+      }).filter(Boolean).sort(function (a, b) { return a.diff / a.alt.cost - b.diff / b.alt.cost; });
+      var acc = 0;
+      cand.forEach(function (c) { c.need = acc < target.gap; acc += c.alt.cost; sugg[c.L.idx] = c; });
+    }
+    function suggCell(L) {
+      if (!target) return "";
+      if (L.o && L.o.p.supplier === target.s) return '<td class="sugg"><span class="meta">' + esc(target.s) + "에 담김</span></td>";
+      var c = sugg[L.idx];
+      if (!c) return '<td class="sugg"><span class="meta">' + (L.pending ? "양 입력 후 표시" : esc(target.s) + "에 없음") + "</span></td>";
+      var pct = c.diff / L.o.cost * 100;
+      var tag = c.diff <= 0 ? "더 쌈" : (pct <= 5 || c.diff <= 1000) ? "큰 차이 없음" : pct <= 15 ? "조금 비쌈" : "많이 비쌈";
+      return '<td class="sugg' + (c.need ? " need" : "") + '"><button type="button" class="linkbtn" data-pickcell="' + L.idx + "|" + esc(c.alt.p.supplier + "|" + c.alt.p.key) + '">→ ' + esc(target.s) + "로</button>" +
+        "<div><b>" + (c.diff > 0 ? "+" : "") + won(c.diff) + "원</b> · " + tag + "</div>" + (c.need ? '<div class="meta">추천</div>' : "") + "</td>";
+    }
+    $("#oTable").innerHTML = "<thead><tr><th>약재</th><th>필요량</th>" + sups.map(function (s) { return "<th>" + esc(s) + "</th>"; }).join("") + '<th class="num">금액</th>' +
+      (target ? '<th class="sugg">' + esc(target.s) + '로 옮기면<div class="meta" style="font-weight:400">' + target.kind + " " + won(target.th) + "원까지 " + won(target.gap) + "원 부족</div></th>" : "") + "<th></th></tr></thead><tbody>" +
+      P.lines.map(function (L) {
+        var m = memoBy[L.h];
+        // 업체별로 그 양을 살 때 가장 싼 상품 (직접 고른 상품이 있으면 그것)
+        var bySup = {};
+        if (!L.pending) L.opts.forEach(function (o) { if (!bySup[o.p.supplier] || o.p.perG < bySup[o.p.supplier].p.perG) bySup[o.p.supplier] = o; });
+        if (L.o) bySup[L.o.p.supplier] = L.o;
+        var pers = Object.keys(bySup).map(function (k) { return bySup[k].p.perG; });
+        var minPerSel = pers.length ? Math.min.apply(null, pers) : null;
+        var minPer = L.perSup.length ? L.perSup[0].perG : null;
+        var cellsHtml = sups.map(function (s) {
+          var link = isLinkOnly(s) ? '<td><a class="btn sm cpbtn" target="_blank" rel="noopener" href="' + searchLink(s, L.h) + '">쿠팡 확인 ↗</a></td>' : '<td><span class="meta">—</span></td>';
+          if (L.pending) {
+            var pp = L.perSup.find(function (p) { return p.supplier === s; });
+            if (!pp) return link;
+            return '<td><div class="ocell' + (pp.perG === minPer && L.perSup.length > 1 ? " lo" : "") + '"><span class="p">' + won(pp.perG * 1000) + '<span class="u">원/kg</span></span><span class="d">' + wt(pp.grams) + " " + won(pp.price) + "원</span></div></td>";
+          }
+          var o = bySup[s];
+          if (!o) return link;
+          var chosen = L.o && L.o.p.supplier === s && L.o.p.key === o.p.key;
+          var low = o.p.perG === minPerSel && pers.length > 1;
+          return '<td><button type="button" class="ocell' + (low ? " lo" : "") + (chosen ? " chosen" : "") + '" data-pickcell="' + L.idx + "|" + esc(o.p.supplier + "|" + o.p.key) + '" title="' + esc(o.p.title) + '">' +
+            '<span class="p">' + won(o.p.perG * 1000) + '<span class="u">원/kg</span>' + (low ? '<span class="stamp">최저</span>' : "") + "</span>" +
+            '<span class="d">' + wt(o.p.grams) + "×" + o.packs + " = <b>" + won(o.cost) + "원</b>" + (o.extra > 0.5 ? " (+" + wt(o.extra) + ")" : "") + "</span>" +
+            '<span class="d t">' + esc(spec(o.p) || o.p.origin || "") + "</span></button></td>";
+        }).join("");
+        return '<tr><td><b class="c-' + esc((m && m.color) || "K") + '">' + esc(L.h) + "</b>" + (L.minMoved ? ' <span class="chip warn">최소금액 맞춤</span>' : "") + (L.it.pick ? ' <button type="button" class="linkbtn" data-auto="' + L.idx + '">자동으로</button>' : "") + (m && m.note ? '<span class="note">' + esc(m.note) + "</span>" : "") +
+          '<div class="rowsel"><select data-origin="' + L.idx + '" aria-label="원산지"><option value="">원산지 무관</option><option value="국산"' + (L.it.origin === "국산" ? " selected" : "") + '>국산만</option><option value="수입"' + (L.it.origin === "수입" ? " selected" : "") + ">수입만</option></select>" +
+          (gradesOf(L.h).length ? '<select data-grade="' + L.idx + '" aria-label="규격"><option value="">규격 무관</option>' + gradesOf(L.h).map(function (g) { return '<option value="' + esc(g.name) + '"' + (L.it.grade === g.name ? " selected" : "") + ">" + esc(g.name) + "</option>"; }).join("") + "</select>" : "") + "</div></td>" +
+          '<td class="qty"><input type="number" min="0" step="1" data-qty="' + L.idx + '" value="' + (L.it.g > 0 ? +(L.it.g / 600).toFixed(2) : "") + '" placeholder="근" aria-label="' + esc(L.h) + ' 필요량 (근)"> 근' + (L.it.g > 0 ? '<div class="meta">' + wt(L.it.g) + "</div>" : "") + "</td>" +
+          cellsHtml +
+          '<td class="num">' + (L.o ? "<b>" + won(L.o.cost) + "</b>" : (L.pending ? '<span class="meta">양 입력</span>' : '<span class="chip warn">가격 없음</span>')) + "</td>" +
+          suggCell(L) +
+          '<td><button class="btn sm ghost" type="button" data-rm="' + L.idx + '">빼기</button></td></tr>';
+      }).join("") + "</tbody>";
+    var pend = P.lines.filter(function (L) { return L.pending; }).length;
+    if (pend === P.lines.length) {
+      $("#oCmp").innerHTML = '<div style="background:none" class="meta">왼쪽 표에서 업체별 가격을 보고 양을 넣으면 업체 나눠 주문과 한 곳 주문을 비교해 드립니다.</div>';
+      $("#oVendors").innerHTML = ""; return;
+    }
+    var b1 = P.singles[0];
+    var cmp = minNoteHtml(P.minNotes) + (pend ? '<p class="meta" style="margin:0 0 4px">양을 아직 안 넣은 약재 ' + pend + '종은 계산에서 빠져 있습니다.</p>' : "") + '<div class="' + (!b1 || P.split <= b1.total ? "win" : "") + '"><span>나눠 주문 (' + P.vend.length + "곳)</span><span class=\"num\">" + won(P.split) + "원</span></div>";
+    cmp += P.singles.map(function (x) { return '<div class="' + (b1 && x === b1 && x.total < P.split ? "win" : "") + '"><span>' + esc(x.s) + '에서 전부</span><span class="num">' + won(x.total) + "원</span></div>"; }).join("");
+    if (!P.singles.length) cmp += '<div><span class="meta">모든 품목을 파는 업체가 없어 한 곳 주문 비교는 생략했습니다.</span></div>';
+    var missing = P.lines.filter(function (L) { return !L.o && !L.pending; });
+    if (missing.length) cmp += '<p class="meta stale" style="margin:4px 0 0">가격 없는 품목: ' + missing.map(function (L) { return esc(L.h); }).join(", ") + "</p>";
+    $("#oCmp").innerHTML = cmp;
+    $("#oVendors").innerHTML = P.vend.map(function (v, i) {
+      var x = supBy(v.s);
+      var text = "[" + v.s + "] 주문\n" + v.lines.map(function (L) { return "- " + L.o.p.title + " × " + L.o.packs + "개"; }).join("\n") + "\n예상 " + won(v.sub) + "원" + (v.sh ? " + 배송비 " + won(v.sh) + "원" : "");
+      return '<div class="vend"><h3><span>' + esc(v.s) + '</span><span class="bar">' + (x.url ? '<a class="btn sm" target="_blank" rel="noopener" href="' + esc(x.url) + '">쇼핑몰 열기</a>' : "") + '<button class="btn sm" type="button" data-copy="' + i + '">주문 내용 복사</button></span></h3>' +
+        "<table><tbody>" + v.lines.map(function (L) { return "<tr><td>" + (L.o.p.url ? '<a target="_blank" rel="noopener" href="' + esc(L.o.p.url) + '">' + esc(L.o.p.title) + "</a>" : esc(L.o.p.title)) + '</td><td class="num">×' + L.o.packs + '</td><td class="num">' + won(L.o.cost) + "</td></tr>"; }).join("") +
+        '<tr><td class="meta">배송비' + (x.free ? " (" + won(x.free) + "원 이상 무료)" : "") + '</td><td></td><td class="num">' + won(v.sh) + "</td></tr>" +
+        '<tr class="tot"><td>합계</td><td></td><td class="num">' + won(v.sub + v.sh) + '원</td></tr></tbody></table><textarea class="code otext" data-text="' + i + '" readonly style="display:none">' + esc(text) + "</textarea></div>";
+    }).join("");
+  }
+  function saveOrder(items) { return call("saveOrder", items).then(load); }
+  // "당귀 3, 천궁 2\n감초" → [{herb:"당귀", geun:3}, ...]
+  function parseBulk(text) {
+    return text.split(/[\n,，、;]+/).map(function (x) { return x.trim(); }).filter(Boolean).map(function (x) {
+      var m = x.match(/^(.*?)\s*([\d.]+)?\s*(근|g|kg)?\s*$/i);
+      var name = (m ? m[1] : x).trim(), n = m && m[2] ? Number(m[2]) : 0, u = m && m[3] ? m[3].toLowerCase() : "근";
+      var g = n > 0 ? (u === "kg" ? n * 1000 : u === "g" ? n : n * 600) : 0;
+      return { herb: canon(name), g: g };
+    }).filter(function (x) { return x.herb; });
+  }
+  $("#oAdd").addEventListener("click", function () {
+    var list = parseBulk($("#oBulk").value);
+    if (!list.length) { toast("약재 이름을 적어 주세요."); return; }
+    var items = D.order.slice(), unknown = [];
+    list.forEach(function (x) {
+      if (!byHerb[x.herb] && !memoBy[x.herb]) unknown.push(x.herb);
+      var i = items.findIndex(function (o) { return canon(o.herb) === x.herb && !o.origin && !o.grade; });
+      if (i >= 0) { if (x.g > 0) items[i] = Object.assign({}, items[i], { g: x.g }); }
+      else items.push({ herb: x.herb, g: x.g, origin: "", pick: "", grade: "" });
+    });
+    saveOrder(items).then(function () {
+      $("#oBulk").value = "";
+      $("#oBulkMsg").textContent = list.length + "종을 넣었습니다." + (unknown.length ? " 가격 정보가 없는 이름: " + unknown.join(", ") + " (오타인지 확인하세요)" : "");
+      toast(list.length + "종을 주문 목록에 넣었습니다.");
+    });
+  });
+  $("#oTable").addEventListener("change", function (e) {
+    var os = e.target.closest("[data-origin]"), gs = e.target.closest("[data-grade]");
+    if (!os && !gs) return;
+    var items = D.order.slice(), k = +(os || gs).getAttribute(os ? "data-origin" : "data-grade");
+    items[k] = Object.assign({}, items[k], os ? { origin: os.value, pick: "" } : { grade: gs.value, pick: "" });
+    saveOrder(items);
+  });
+
+  $("#oTable").addEventListener("click", function (e) {
+    var pc = e.target.closest("[data-pickcell]"), au = e.target.closest("[data-auto]");
+    if (pc) {
+      var parts = pc.getAttribute("data-pickcell").split("|"), k = +parts[0];
+      var items = D.order.slice(); items[k] = Object.assign({}, items[k], { pick: parts.slice(1).join("|") });
+      saveOrder(items); return;
+    }
+    if (au) { var it2 = D.order.slice(), k2 = +au.getAttribute("data-auto"); it2[k2] = Object.assign({}, it2[k2], { pick: "" }); saveOrder(it2); return; }
+    var b = e.target.closest("[data-rm]"); if (!b) return;
+    saveOrder(D.order.filter(function (_, i) { return i !== +b.getAttribute("data-rm"); }));
+  });
+  $("#oTable").addEventListener("change", function (e) {
+    var qi = e.target.closest("[data-qty]");
+    if (qi) {
+      var items = D.order.slice(), k = +qi.getAttribute("data-qty"), v = Number(qi.value);
+      items[k] = Object.assign({}, items[k], { g: v > 0 ? Math.round(v * 600) : 0 });
+      saveOrder(items); return;
+    }
+    var s = e.target.closest("[data-pick]"); if (!s) return;
+    var items = D.order.slice(); items[+s.getAttribute("data-pick")] = Object.assign({}, items[+s.getAttribute("data-pick")], { pick: s.value });
+    saveOrder(items);
+  });
+  var clearArmed = false;
+  $("#oClear").addEventListener("click", function (e) {
+    if (!clearArmed) { clearArmed = true; e.target.textContent = "한 번 더 누르면 비웁니다"; setTimeout(function () { clearArmed = false; e.target.textContent = "주문 목록 비우기"; }, 3000); return; }
+    clearArmed = false; e.target.textContent = "주문 목록 비우기"; saveOrder([]);
+  });
+  $("#cartSave").addEventListener("click", function () {
+    var P = plan(), items = [];
+    P.vend.forEach(function (v) { if (isLinkOnly(v.s)) return; v.lines.forEach(function (L) { items.push({ supplier: v.s, key: L.o.p.key, title: L.o.p.title, qty: L.o.packs }); }); });
+    if (!items.length) { toast("담을 품목이 없습니다. 양을 먼저 넣으세요."); return; }
+    call("saveCart", items).then(function (r) { $("#cartMsg").textContent = (r && r.count != null ? r.count : items.length) + "개 품목 확정 · 이제 쇼핑몰에서 버튼을 누르세요"; toast("장바구니 목록을 확정했습니다."); });
+  });
+  function copyText(text, ta) {
+    function fallback() { ta.style.display = "block"; ta.select(); toast("복사가 막혀 있어 내용을 선택해 두었습니다. 길게 눌러 복사하세요."); }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { toast("복사했습니다."); }, fallback); else fallback();
+  }
+  $("#oVendors").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-copy]"); if (!b) return;
+    var ta = document.querySelector('textarea[data-text="' + b.getAttribute("data-copy") + '"]');
+    copyText(ta.value, ta);
+  });
+
+  /* ---------- 관리 ---------- */
+  function renderManage() {
+    $("#supList").innerHTML = supplierNames().map(function (n, i) {
+      var s = supBy(n), cnt = D.products.filter(function (p) { return p.supplier === n; }).length;
+      return '<div class="row" style="flex-wrap:wrap"><div style="flex:1 1 140px"><b>' + esc(n) + '</b><div class="meta">상품 ' + cnt + "개</div></div>" +
+        '<label class="f" style="width:100px">배송비<input type="number" min="0" step="100" id="ship' + i + '" value="' + (s.ship || 0) + '"></label>' +
+        '<label class="f" style="width:120px">무료배송 기준<input type="number" min="0" step="1000" id="free' + i + '" value="' + (s.free || 0) + '"></label>' +
+        '<label class="f" style="width:120px">최소 주문금액<input type="number" min="0" step="10000" id="min' + i + '" value="' + (s.min || 0) + '"></label>' +
+        '<button class="btn sm" type="button" data-sup="' + i + '">저장</button></div>';
+    }).join("") || '<div class="meta">업체가 없습니다.</div>';
+    var ms = D.memos.slice().sort(function (a, b) { return (b.fav - a.fav) || ko(a.herb, b.herb); });
+    $("#memoList").innerHTML = ms.map(function (m) {
+      return '<div class="row"><div><b>' + (m.fav ? '<span class="fav">★ </span>' : "") + '<span class="c-' + esc(m.color || "K") + '">' + esc(m.herb) + "</span></b>" + (m.aliases ? ' <span class="meta">' + esc(m.aliases) + "</span>" : "") + (m.note ? '<span class="note">' + esc(m.note) + "</span>" : "") + '</div><span class="bar"><button class="btn sm" type="button" data-edit="' + esc(m.herb) + '">수정</button><button class="btn sm ghost danger" type="button" data-del="' + esc(m.herb) + '">삭제</button></span></div>';
+    }).join("") || '<div class="meta">메모가 없습니다.</div>';
+  }
+  $("#supList").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-sup]"); if (!b) return;
+    var i = b.getAttribute("data-sup"), n = supplierNames()[+i], s = supBy(n);
+    call("saveSupplier", { name: n, url: s.url || "", ship: Number($("#ship" + i).value) || 0, free: Number($("#free" + i).value) || 0, min: Number($("#min" + i).value) || 0 }, n).then(load).then(function () { toast(n + " 배송비를 저장했습니다."); });
+  });
+  var editing = "";
+  $("#memoForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var m = { herb: $("#mHerb").value.trim(), aliases: $("#mAlias").value.trim(), note: $("#mNote").value.trim(), fav: $("#mFav").checked, color: $("#mColor").value };
+    if (!m.herb) return;
+    call("saveMemo", m, editing || m.herb).then(load).then(function () { toast("저장했습니다."); resetMemo(); });
+  });
+  $("#lgSave").addEventListener("click", function () {
+    call("saveLegend", { R: $("#lgR").value.trim(), G: $("#lgG").value.trim(), B: $("#lgB").value.trim(), K: $("#lgK").value.trim() }).then(load).then(function () { toast("글자색 의미를 저장했습니다."); });
+  });
+  function resetMemo() { editing = ""; $("#memoForm").reset(); $("#mCancel").hidden = true; $("#mSave").textContent = "저장"; }
+  $("#mCancel").addEventListener("click", resetMemo);
+  var delArmed = "";
+  $("#memoList").addEventListener("click", function (e) {
+    var ed = e.target.closest("[data-edit]"), dl = e.target.closest("[data-del]");
+    if (ed) { var m = memoBy[ed.getAttribute("data-edit")]; editing = m.herb; $("#mHerb").value = m.herb; $("#mAlias").value = m.aliases; $("#mNote").value = m.note; $("#mFav").checked = m.fav; $("#mColor").value = m.color === "K" ? "" : (m.color || ""); $("#mCancel").hidden = false; $("#mSave").textContent = "수정 저장"; $("#mHerb").focus(); }
+    if (dl) {
+      var h = dl.getAttribute("data-del");
+      if (delArmed !== h) { delArmed = h; dl.textContent = "한 번 더"; setTimeout(function () { delArmed = ""; dl.textContent = "삭제"; }, 3000); return; }
+      call("deleteMemo", h).then(load);
+    }
+  });
+
+  /* ---------- 가격 보내기 버튼 ---------- */
+  function renderButton() {
+    var url = BOOT.url || "", key = BOOT.key || "";
+    var code = "javascript:(function(){window.__HP_CFG={url:'" + url + "',key:'" + key + "'};var s=document.createElement('script');s.src='" + url + "?js=1&t='+Date.now();document.body.appendChild(s);})();";
+    $("#bmLink").setAttribute("href", code);
+    $("#bmCode").value = code;
+    if (!url) $("#bmMsg").textContent = "미리보기에서는 실제 주소가 없습니다.";
+  }
+  $("#bmLink").addEventListener("click", function (e) { e.preventDefault(); toast("누르지 말고 즐겨찾기 막대로 끌어다 놓으세요."); });
+  $("#bmCopy").addEventListener("click", function () { copyText($("#bmCode").value, $("#bmCode")); });
+
+  /* ---------- 탭·단위 ---------- */
+  function setTab(t) {
+    pref.tab = t; savePref();
+    document.querySelectorAll("#tabs button").forEach(function (b) { b.setAttribute("aria-selected", String(b.getAttribute("data-t") === t)); });
+    ["compare", "order", "manage", "button"].forEach(function (k) { $("#p-" + k).hidden = k !== t; });
+  }
+  $("#tabs").addEventListener("click", function (e) { var b = e.target.closest("[data-t]"); if (b) setTab(b.getAttribute("data-t")); });
+  $("#unitSeg").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-u]"); if (!b) return;
+    pref.unit = b.getAttribute("data-u"); savePref();
+    document.querySelectorAll("#unitSeg button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+    renderCompare();
+  });
+  document.querySelectorAll("#unitSeg button").forEach(function (x) { x.setAttribute("aria-pressed", String(x.getAttribute("data-u") === pref.unit)); });
+  $("#originF").value = pref.origin; $("#favOnly").checked = pref.fav; $("#watchOnly").checked = !!pref.watchOnly;
+
+  function renderAll() { renderStatus(); renderLegend(); renderWatch(); renderCompare(); renderOrder(); renderManage(); renderButton(); }
+
+  /* ---------- 미리보기용 예시 (Apps Script 밖에서 열었을 때만) ---------- */
+  var DEMO = { products: [], memos: [], suppliers: [], order: [] };
+  if (!HAS_GAS) {
+    DEMO.suppliers = [{ name: "메디스트림 메디마켓", url: "", ship: 3000, free: 50000 }, { name: "바이퓨어", url: "", ship: 4000, free: 100000, min: 100000 }, { name: "쿠팡", url: "", ship: 0, free: 0 }];
+    DEMO.memos = [{ herb: "잔대", aliases: "", note: "사삼: 태음인은 잔대로 주문 (더덕은 소양인)", fav: true, color: "K" }, { herb: "의이인", aliases: "율무", note: "쿠팡에서 구매", fav: true, color: "R" }, { herb: "감초", aliases: "", note: "", fav: true, color: "G" }, { herb: "당귀", aliases: "", note: "", fav: true, color: "G" }, { herb: "작약", aliases: "", note: "", fav: true, color: "B" }];
+    DEMO.legend = { R: "", G: "", B: "", K: "" };
+    var S = [["메디스트림 메디마켓", "감초", "[예시] 감초, 500g, 우즈베키스탄", "우즈베키스탄", 500, 4416], ["바이퓨어", "감초", "[예시] 감초(양외) : 2호", "중국", 600, 23800], ["바이퓨어", "감초", "[예시] 감초(우즈벡) : 1호", "우즈베키스탄", 600, 6000], ["메디스트림 메디마켓", "당귀", "[예시] 당귀(참), 500g, 중국", "중국", 500, 6624], ["바이퓨어", "당귀", "[예시] 당귀", "중국", 600, 8900], ["쿠팡", "율무", "[예시] 연천율무 1kg", "", 1000, 18900], ["메디스트림 메디마켓", "작약", "[예시] 작약(GAP인증), 500g, 한국", "한국", 500, 6912], ["바이퓨어", "작약", "[예시] 백작약", "국산", 600, 9600]];
+    DEMO.products = S.map(function (r, i) { return { supplier: r[0], key: "d" + i, herb: r[1], title: r[2], origin: r[3], grams: r[4], price: r[5], url: "", at: "2026-10-16 10:00" }; });
+    DEMO.order = [{ herb: "당귀", g: 1800, origin: "", pick: "" }, { herb: "작약", g: 1200, origin: "", pick: "바이퓨어|d7" }, { herb: "감초", g: 3000, origin: "", pick: "" }, { herb: "녹용", g: 600, origin: "", pick: "" }, { herb: "의이인", g: 0, origin: "", pick: "" }];
+    DEMO.watch = ["감초", "당귀"];
+    [["바이퓨어", "녹용", "녹용(뉴질랜드) 상대 A", "뉴질랜드", 600, 250000], ["바이퓨어", "녹용", "녹용(뉴질랜드) 분골 A", "뉴질랜드", 600, 370000], ["메디스트림 메디마켓", "녹용", "[예시] 녹용 상대, 600g, 뉴질랜드", "뉴질랜드", 600, 240000], ["메디스트림 메디마켓", "녹용", "[예시] 녹용 분골, 600g, 뉴질랜드", "뉴질랜드", 600, 390000]].forEach(function (r, i) { DEMO.products.push({ supplier: r[0], key: "n" + i, herb: r[1], title: r[2], origin: r[3], grams: r[4], price: r[5], url: "", at: "2026-10-16 10:00" }); });
+    DEMO.grades = [{ herb: "녹용", name: "뉴질랜드 상대", items: ["바이퓨어|n0", "메디스트림 메디마켓|n2"] }, { herb: "녹용", name: "뉴질랜드 분골", items: ["바이퓨어|n1", "메디스트림 메디마켓|n3"] }];
+  }
+
+  setTab(pref.tab);
+  call("getData").then(load);
+})();
+</script>
+</body>
+</html>
